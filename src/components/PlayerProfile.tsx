@@ -17,9 +17,9 @@ const PlayerProfile = ({ onUpgrade }: PlayerProfileProps) => {
   ];
 
   const recentGames = [
-    { court: 'Rucker Park', result: 'W', score: '21-18', date: '2 days ago' },
-    { court: 'West 4th Street', result: 'L', score: '15-21', date: '1 week ago' },
-    { court: 'Marcus Garvey', result: 'W', score: '21-14', date: '1 week ago' },
+    { court: 'State Farm Arena Courts', result: 'W', score: '21-18', date: '2 days ago' },
+    { court: 'Piedmont Park', result: 'L', score: '15-21', date: '1 week ago' },
+    { court: 'Washington Park', result: 'W', score: '21-14', date: '1 week ago' },
   ];
 
   return (
@@ -35,7 +35,7 @@ const PlayerProfile = ({ onUpgrade }: PlayerProfileProps) => {
           </div>
         </div>
         <h2 className="text-2xl font-bold">John Doe</h2>
-        <p className="text-muted-foreground">Brooklyn, NY</p>
+        <p className="text-muted-foreground">Atlanta, GA</p>
         <div className="flex justify-center gap-4 mt-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-brand-magenta">127</div>
@@ -55,13 +55,13 @@ const PlayerProfile = ({ onUpgrade }: PlayerProfileProps) => {
       {/* Skill Level */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold">Skill Level</h3>
-          <Badge className="bg-orange-500 text-white">Pro</Badge>
+          <h3 className="font-semibold">Skill Tier</h3>
+          <Badge className="bg-gray-400 text-white">Silver</Badge>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div className="bg-brand-gradient h-2 rounded-full" style={{ width: '78%' }}></div>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">78% to Elite level</p>
+        <p className="text-sm text-muted-foreground mt-2">Win more games to reach Gold tier</p>
       </Card>
 
       {/* Badges */}

@@ -16,11 +16,14 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     musicVibe: ''
   });
 
-  const cities = ['Brooklyn', 'Manhattan', 'Bronx', 'Queens', 'Other'];
+  const cities = ['Atlanta', 'Decatur', 'Marietta', 'East Point', 'Other'];
   const skillLevels = [
-    { level: 'Rookie', desc: 'Learning the basics', color: 'bg-green-500' },
-    { level: 'Pro', desc: 'Solid fundamentals', color: 'bg-orange-500' },
-    { level: 'Elite', desc: 'Streetball legend', color: 'bg-red-500' }
+    { level: 'Wood', desc: 'Building fundamentals', color: 'bg-amber-800' },
+    { level: 'Bronze', desc: 'Getting better', color: 'bg-amber-600' },
+    { level: 'Silver', desc: 'Solid player', color: 'bg-gray-400' },
+    { level: 'Gold', desc: 'Elite skills', color: 'bg-yellow-500' },
+    { level: 'Platinum', desc: 'Top tier', color: 'bg-slate-300' },
+    { level: 'Legend', desc: 'Court royalty', color: 'bg-purple-600' }
   ];
   const musicVibes = [
     { vibe: 'Hip-Hop', icon: '🎤', desc: 'Classic street vibes' },
@@ -50,29 +53,28 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
       )
     },
     {
-      title: "What's your skill level?",
-      subtitle: "Help us match you with the right games",
+      title: "Your rank is earned",
+      subtitle: "Your tier will be determined by your win/loss record",
       icon: <Zap className="w-8 h-8 text-brand-orange" />,
       content: (
         <div className="space-y-3">
+          <div className="text-center mb-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Your skill tier will be automatically assigned based on your performance in games. 
+              Start playing to unlock your rank!
+            </p>
+          </div>
           {skillLevels.map((skill) => (
-            <Button
+            <div
               key={skill.level}
-              variant="outline"
-              className={`w-full p-4 h-auto flex items-center gap-4 ${
-                selections.skillLevel === skill.level ? 'ring-2 ring-brand-magenta' : ''
-              }`}
-              onClick={() => setSelections({...selections, skillLevel: skill.level})}
+              className="w-full p-4 border rounded-lg flex items-center gap-4 opacity-75"
             >
               <div className={`w-4 h-4 rounded-full ${skill.color}`}></div>
               <div className="text-left flex-1">
                 <div className="font-semibold">{skill.level}</div>
                 <div className="text-sm text-muted-foreground">{skill.desc}</div>
               </div>
-              {selections.skillLevel === skill.level && (
-                <CheckCircle className="w-5 h-5 text-brand-magenta" />
-              )}
-            </Button>
+            </div>
           ))}
         </div>
       )
@@ -107,7 +109,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
 
   const currentStep = steps[step];
   const canProceed = step === 0 ? selections.city : 
-                     step === 1 ? selections.skillLevel : 
+                     step === 1 ? true : // Skip skill selection since it's auto-assigned
                      selections.musicVibe;
 
   const handleNext = () => {

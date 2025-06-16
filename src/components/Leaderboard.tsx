@@ -5,17 +5,17 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 const Leaderboard = () => {
-  const [selectedCity, setSelectedCity] = useState('Brooklyn');
+  const [selectedCity, setSelectedCity] = useState('Atlanta');
 
-  const cities = ['Brooklyn', 'Manhattan', 'Bronx', 'Queens'];
+  const cities = ['Atlanta', 'Decatur', 'Marietta', 'East Point'];
   
   const leaderboardData = [
-    { rank: 1, name: 'Marcus Johnson', wins: 89, winRate: 94, rating: 9.8, avatar: 'MJ' },
-    { rank: 2, name: 'DeShawn Williams', wins: 76, winRate: 91, rating: 9.5, avatar: 'DW' },
-    { rank: 3, name: 'John Doe', wins: 73, winRate: 85, rating: 8.4, avatar: 'JD' },
-    { rank: 4, name: 'Anthony Davis', wins: 68, winRate: 82, rating: 8.1, avatar: 'AD' },
-    { rank: 5, name: 'Kevin Thompson', wins: 61, winRate: 79, rating: 7.9, avatar: 'KT' },
-    { rank: 6, name: 'Jamal Carter', wins: 58, winRate: 76, rating: 7.6, avatar: 'JC' },
+    { rank: 1, name: 'Marcus Johnson', wins: 89, winRate: 94, rating: 9.8, avatar: 'MJ', tier: 'Legend' },
+    { rank: 2, name: 'DeShawn Williams', wins: 76, winRate: 91, rating: 9.5, avatar: 'DW', tier: 'Platinum' },
+    { rank: 3, name: 'John Doe', wins: 73, winRate: 85, rating: 8.4, avatar: 'JD', tier: 'Silver' },
+    { rank: 4, name: 'Anthony Davis', wins: 68, winRate: 82, rating: 8.1, avatar: 'AD', tier: 'Silver' },
+    { rank: 5, name: 'Kevin Thompson', wins: 61, winRate: 79, rating: 7.9, avatar: 'KT', tier: 'Bronze' },
+    { rank: 6, name: 'Jamal Carter', wins: 58, winRate: 76, rating: 7.6, avatar: 'JC', tier: 'Bronze' },
   ];
 
   const getRankColor = (rank: number) => {
@@ -32,6 +32,18 @@ const Leaderboard = () => {
       return <Trophy className={`w-5 h-5 ${getRankColor(rank)} fill-current`} />;
     }
     return <span className="text-lg font-bold text-gray-600">#{rank}</span>;
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'Legend': return 'bg-purple-600';
+      case 'Platinum': return 'bg-slate-300';
+      case 'Gold': return 'bg-yellow-500';
+      case 'Silver': return 'bg-gray-400';
+      case 'Bronze': return 'bg-amber-600';
+      case 'Wood': return 'bg-amber-800';
+      default: return 'bg-gray-500';
+    }
   };
 
   return (
@@ -83,8 +95,11 @@ const Leaderboard = () => {
               {/* Player Info */}
               <div className="flex-1">
                 <div className="font-semibold">{player.name}</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
                   {player.wins} wins • {player.winRate}% win rate
+                  <span className={`px-2 py-1 rounded-full text-xs text-white ${getTierColor(player.tier)}`}>
+                    {player.tier}
+                  </span>
                 </div>
               </div>
 
