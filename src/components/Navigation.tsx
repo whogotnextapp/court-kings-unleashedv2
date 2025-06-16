@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MapPin, User, Trophy, Plus } from 'lucide-react';
+import { MapPin, User, Trophy, Music, Youtube } from 'lucide-react';
 
 interface NavigationProps {
   currentView: string;
@@ -9,9 +9,10 @@ interface NavigationProps {
 
 const Navigation = ({ currentView, onViewChange }: NavigationProps) => {
   const navItems = [
-    { id: 'map', icon: MapPin, label: 'Courts' },
+    { id: 'music', icon: Music, label: 'Music' },
+    { id: 'podcast', icon: Youtube, label: 'Podcast' },
+    { id: 'map', icon: MapPin, label: 'Find Game' },
     { id: 'leaderboard', icon: Trophy, label: 'Rankings' },
-    { id: 'create', icon: Plus, label: 'Create' },
     { id: 'profile', icon: User, label: 'Profile' },
   ];
 

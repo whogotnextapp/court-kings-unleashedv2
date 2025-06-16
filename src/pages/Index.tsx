@@ -15,11 +15,9 @@ const Index = () => {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user has completed onboarding
-    const hasCompletedOnboarding = localStorage.getItem('wgn_onboarding_complete');
-    if (hasCompletedOnboarding) {
-      setIsFirstTime(false);
-    }
+    // Clear onboarding to restart from beginning
+    localStorage.removeItem('wgn_onboarding_complete');
+    setIsFirstTime(true);
   }, []);
 
   const handleOnboardingComplete = () => {
@@ -33,7 +31,7 @@ const Index = () => {
 
   const handleGameJoined = () => {
     setSelectedGameId(null);
-    setCurrentView('profile'); // Show profile after joining
+    setCurrentView('profile');
   };
 
   const handleUpgrade = () => {
@@ -47,6 +45,10 @@ const Index = () => {
   const handleBackToMap = () => {
     setSelectedGameId(null);
     setCurrentView('map');
+  };
+
+  const handlePodcastClick = () => {
+    window.open('https://youtube.com/@2tearsinabucketpodcast707?si=dsspmNFSjVZ-04ir', '_blank');
   };
 
   // Show onboarding for first-time users
@@ -89,12 +91,24 @@ const Index = () => {
         return <PlayerProfile onUpgrade={handleUpgrade} />;
       case 'leaderboard':
         return <Leaderboard />;
-      case 'create':
+      case 'music':
         return (
           <div className="p-4 flex items-center justify-center h-full">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">Create Game</h2>
-              <p className="text-muted-foreground">Coming soon! 🏀</p>
+              <Music className="w-16 h-16 mx-auto mb-4 text-brand-magenta" />
+              <h2 className="text-2xl font-bold mb-4">Music</h2>
+              <p className="text-muted-foreground">Game soundtrack coming soon! 🎵</p>
+            </div>
+          </div>
+        );
+      case 'podcast':
+        handlePodcastClick();
+        return (
+          <div className="p-4 flex items-center justify-center h-full">
+            <div className="text-center">
+              <Youtube className="w-16 h-16 mx-auto mb-4 text-red-600" />
+              <h2 className="text-2xl font-bold mb-4">Podcast</h2>
+              <p className="text-muted-foreground">Opening 2 Tears in a Bucket...</p>
             </div>
           </div>
         );
@@ -105,7 +119,7 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="pb-16"> {/* Space for navigation */}
+      <div className="pb-16">
         {renderCurrentView()}
       </div>
       <Navigation currentView={currentView} onViewChange={setCurrentView} />
