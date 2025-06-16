@@ -1,12 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
+import { Music, Youtube } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Onboarding from '@/components/Onboarding';
-import MapView from '@/components/MapView';
+import EnhancedMapView from '@/components/EnhancedMapView';
 import PlayerProfile from '@/components/PlayerProfile';
 import Leaderboard from '@/components/Leaderboard';
 import PremiumUpgrade from '@/components/PremiumUpgrade';
 import JoinGameFlow from '@/components/JoinGameFlow';
+import MusicPlayer from '@/components/MusicPlayer';
+import PodcastPlayer from '@/components/PodcastPlayer';
 import Navigation from '@/components/Navigation';
 
 const Index = () => {
@@ -15,9 +17,9 @@ const Index = () => {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Clear onboarding to restart from beginning
-    localStorage.removeItem('wgn_onboarding_complete');
-    setIsFirstTime(true);
+    // Check if user has completed onboarding
+    const onboardingComplete = localStorage.getItem('wgn_onboarding_complete');
+    setIsFirstTime(!onboardingComplete);
   }, []);
 
   const handleOnboardingComplete = () => {
@@ -45,10 +47,6 @@ const Index = () => {
   const handleBackToMap = () => {
     setSelectedGameId(null);
     setCurrentView('map');
-  };
-
-  const handlePodcastClick = () => {
-    window.open('https://youtube.com/@2tearsinabucketpodcast707?si=dsspmNFSjVZ-04ir', '_blank');
   };
 
   // Show onboarding for first-time users
@@ -86,34 +84,17 @@ const Index = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'map':
-        return <MapView onJoinGame={handleJoinGame} />;
+        return <EnhancedMapView onJoinGame={handleJoinGame} />;
       case 'profile':
         return <PlayerProfile onUpgrade={handleUpgrade} />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'music':
-        return (
-          <div className="p-4 flex items-center justify-center h-full">
-            <div className="text-center">
-              <Music className="w-16 h-16 mx-auto mb-4 text-brand-magenta" />
-              <h2 className="text-2xl font-bold mb-4">Music</h2>
-              <p className="text-muted-foreground">Game soundtrack coming soon! 🎵</p>
-            </div>
-          </div>
-        );
+        return <MusicPlayer />;
       case 'podcast':
-        handlePodcastClick();
-        return (
-          <div className="p-4 flex items-center justify-center h-full">
-            <div className="text-center">
-              <Youtube className="w-16 h-16 mx-auto mb-4 text-red-600" />
-              <h2 className="text-2xl font-bold mb-4">Podcast</h2>
-              <p className="text-muted-foreground">Opening 2 Tears in a Bucket...</p>
-            </div>
-          </div>
-        );
+        return <PodcastPlayer />;
       default:
-        return <MapView onJoinGame={handleJoinGame} />;
+        return <EnhancedMapView onJoinGame={handleJoinGame} />;
     }
   };
 
