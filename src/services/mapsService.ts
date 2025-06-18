@@ -27,7 +27,7 @@ class MapsService {
 
   constructor() {
     this.isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    this.googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    this.googleMapsApiKey = 'AIzaSyDQNCNWXhWcNobEtkRuTJsZPYa8OlvXzlY';
   }
 
   // Get user's current location
@@ -111,8 +111,10 @@ class MapsService {
     }
 
     try {
+      // Use CORS proxy for development
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
+        `${proxyUrl}https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
         `location=${location.latitude},${location.longitude}&` +
         `radius=${radius}&` +
         `keyword=basketball+court&` +
