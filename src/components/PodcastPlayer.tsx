@@ -10,7 +10,7 @@ const PodcastPlayer = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   // 2 Tears in a Bucket Podcast Channel ID
-  const channelId = import.meta.env.VITE_PODCAST_CHANNEL_ID || 'UC2tearsinabucketpodcast707';
+  const channelId = 'UCRiOQv4UIFUAvyPgh-8g0dw';
 
   useEffect(() => {
     loadPodcastData();

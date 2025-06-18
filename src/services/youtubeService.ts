@@ -24,7 +24,7 @@ class YouTubeService {
   private baseUrl = 'https://www.googleapis.com/youtube/v3';
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || '';
+    this.apiKey = 'AIzaSyC5F2JqtY5bU0nVVgyL13Hu3PrZNVN8gGk';
   }
 
   // Get channel information
