@@ -111,7 +111,7 @@ class YouTubeService {
 
       return videosData.items.map((item: any) => {
         const videoId = item.snippet.resourceId.videoId;
-        const details = videoDetails.get(videoId);
+        const details = videoDetails.get(videoId) as any;
         
         return {
           id: videoId,

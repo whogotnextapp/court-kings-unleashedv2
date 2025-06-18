@@ -105,7 +105,6 @@ class MapsService {
     }
   }
 
-  // Google Maps integration
   private async searchWithGoogleMaps(location: MapLocation, radius: number): Promise<Court[]> {
     if (!this.googleMapsApiKey) {
       throw new Error('Google Maps API key not configured');
