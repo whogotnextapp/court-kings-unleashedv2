@@ -1,4 +1,5 @@
-// Apple Music API service
+
+// Spotify Web API service
 export interface Song {
   id: string;
   title: string;
@@ -7,7 +8,6 @@ export interface Song {
   artwork: string;
   duration: number;
   previewUrl?: string;
-  appleMusicUrl?: string;
   spotifyUrl?: string;
 }
 
@@ -21,50 +21,230 @@ export interface Playlist {
 }
 
 class MusicService {
-  private appleMusicToken: string;
-  private isAppleDevice: boolean;
+  private spotifyClientId: string;
+  private spotifyClientSecret: string;
+  private accessToken: string = '';
+  private defaultPlaylistId: string;
 
   constructor() {
-    this.appleMusicToken = import.meta.env.VITE_APPLE_MUSIC_TOKEN || '';
-    this.isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    this.spotifyClientId = 'd174a78d7fe148ef980e838859804283';
+    this.spotifyClientSecret = '7687ff50102d4b9385ca1f341361ad2d';
+    this.defaultPlaylistId = '5xlm8F3QLdJcyS6uKoMYHK';
   }
 
-  // Initialize Apple Music (requires user authorization)
-  async initializeAppleMusic(): Promise<boolean> {
-    if (!window.MusicKit) {
-      console.warn('Apple MusicKit not loaded');
-      return false;
+  // Get Spotify access token using client credentials flow
+  async getAccessToken(): Promise<string> {
+    if (this.accessToken) {
+      return this.accessToken;
     }
 
     try {
-      await window.MusicKit.configure({
-        developerToken: this.appleMusicToken,
-        app: {
-          name: 'Who Got Next',
-          build: '1.0.0'
-        }
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${btoa(`${this.spotifyClientId}:${this.spotifyClientSecret}`)}`
+        },
+        body: 'grant_type=client_credentials'
       });
 
-      const music = window.MusicKit.getInstance();
-      
-      if (!music.isAuthorized) {
-        await music.authorize();
+      if (!response.ok) {
+        throw new Error('Failed to get Spotify access token');
       }
 
-      return music.isAuthorized;
+      const data = await response.json();
+      this.accessToken = data.access_token;
+      
+      // Token expires in 1 hour, clear it after 50 minutes
+      setTimeout(() => {
+        this.accessToken = '';
+      }, 50 * 60 * 1000);
+
+      return this.accessToken;
     } catch (error) {
-      console.error('Apple Music initialization error:', error);
-      return false;
+      console.error('Spotify token error:', error);
+      return '';
     }
   }
 
-  // Get basketball-themed playlists
+  // Get basketball-themed playlists (including the default one)
   async getBasketballPlaylists(): Promise<Playlist[]> {
-    const playlists: Playlist[] = [
+    try {
+      const token = await this.getAccessToken();
+      if (!token) {
+        return this.getFallbackPlaylists();
+      }
+
+      // Get the specific playlist
+      const playlistResponse = await fetch(
+        `https://api.spotify.com/v1/playlists/${this.defaultPlaylistId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!playlistResponse.ok) {
+        throw new Error('Failed to fetch playlist');
+      }
+
+      const playlistData = await playlistResponse.json();
+      
+      const playlist: Playlist = {
+        id: playlistData.id,
+        name: playlistData.name,
+        description: playlistData.description || 'Basketball workout playlist',
+        artwork: playlistData.images?.[0]?.url || '',
+        songs: [],
+        duration: playlistData.tracks.total * 180 // Rough estimate
+      };
+
+      // Get additional basketball playlists through search
+      const searchResponse = await fetch(
+        'https://api.spotify.com/v1/search?q=basketball%20workout&type=playlist&limit=5',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      let additionalPlaylists: Playlist[] = [];
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        additionalPlaylists = searchData.playlists.items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          artwork: item.images?.[0]?.url || '',
+          songs: [],
+          duration: item.tracks.total * 180
+        }));
+      }
+
+      return [playlist, ...additionalPlaylists];
+    } catch (error) {
+      console.error('Spotify playlists error:', error);
+      return this.getFallbackPlaylists();
+    }
+  }
+
+  // Get songs from a playlist
+  async getPlaylistTracks(playlistId: string): Promise<Song[]> {
+    try {
+      const token = await this.getAccessToken();
+      if (!token) {
+        return [];
+      }
+
+      const response = await fetch(
+        `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch playlist tracks');
+      }
+
+      const data = await response.json();
+      
+      return data.items.map((item: any) => ({
+        id: item.track.id,
+        title: item.track.name,
+        artist: item.track.artists.map((artist: any) => artist.name).join(', '),
+        album: item.track.album.name,
+        artwork: item.track.album.images?.[0]?.url || '',
+        duration: Math.floor(item.track.duration_ms / 1000),
+        previewUrl: item.track.preview_url,
+        spotifyUrl: item.track.external_urls.spotify
+      }));
+    } catch (error) {
+      console.error('Spotify tracks error:', error);
+      return [];
+    }
+  }
+
+  // Search for songs
+  async searchSongs(query: string): Promise<Song[]> {
+    try {
+      const token = await this.getAccessToken();
+      if (!token) {
+        return [];
+      }
+
+      const response = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=20`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to search songs');
+      }
+
+      const data = await response.json();
+      
+      return data.tracks.items.map((track: any) => ({
+        id: track.id,
+        title: track.name,
+        artist: track.artists.map((artist: any) => artist.name).join(', '),
+        album: track.album.name,
+        artwork: track.album.images?.[0]?.url || '',
+        duration: Math.floor(track.duration_ms / 1000),
+        previewUrl: track.preview_url,
+        spotifyUrl: track.external_urls.spotify
+      }));
+    } catch (error) {
+      console.error('Spotify search error:', error);
+      return [];
+    }
+  }
+
+  // Play a song (opens in Spotify)
+  async playSong(songId: string): Promise<boolean> {
+    // Since we can't control Spotify playback without premium SDK,
+    // we'll open the song in Spotify
+    const spotifyUrl = `https://open.spotify.com/track/${songId}`;
+    window.open(spotifyUrl, '_blank');
+    return true;
+  }
+
+  // Open playlist in Spotify
+  openPlaylist(playlistId: string) {
+    const spotifyUrl = `https://open.spotify.com/playlist/${playlistId}`;
+    window.open(spotifyUrl, '_blank');
+  }
+
+  // Open song in Spotify
+  openSong(song: Song) {
+    if (song.spotifyUrl) {
+      window.open(song.spotifyUrl, '_blank');
+    } else {
+      const spotifyUrl = `https://open.spotify.com/track/${song.id}`;
+      window.open(spotifyUrl, '_blank');
+    }
+  }
+
+  // Get default playlist ID
+  getDefaultPlaylistId(): string {
+    return this.defaultPlaylistId;
+  }
+
+  // Fallback playlists if Spotify API fails
+  private getFallbackPlaylists(): Playlist[] {
+    return [
       {
-        id: 'workout-hype',
+        id: this.defaultPlaylistId,
         name: 'Court Hype',
-        description: 'High-energy tracks to get you pumped for the game',
+        description: 'Your basketball workout playlist',
         artwork: 'https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg',
         songs: [],
         duration: 3600
@@ -76,135 +256,8 @@ class MusicService {
         artwork: 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg',
         songs: [],
         duration: 4200
-      },
-      {
-        id: 'warm-up',
-        name: 'Pre-Game Warm Up',
-        description: 'Perfect beats for warming up before the game',
-        artwork: 'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg',
-        songs: [],
-        duration: 2400
       }
     ];
-
-    // If Apple Music is available, fetch real playlists
-    if (this.isAppleDevice && window.MusicKit) {
-      try {
-        const music = window.MusicKit.getInstance();
-        if (music.isAuthorized) {
-          const searchResults = await music.api.search('basketball workout', {
-            types: ['playlists'],
-            limit: 10
-          });
-
-          if (searchResults.playlists) {
-            return searchResults.playlists.data.map((playlist: any) => ({
-              id: playlist.id,
-              name: playlist.attributes.name,
-              description: playlist.attributes.description?.standard || '',
-              artwork: playlist.attributes.artwork?.url?.replace('{w}x{h}', '400x400') || '',
-              songs: [],
-              duration: playlist.attributes.durationInMillis / 1000
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Apple Music search error:', error);
-      }
-    }
-
-    return playlists;
-  }
-
-  // Search for songs
-  async searchSongs(query: string): Promise<Song[]> {
-    if (this.isAppleDevice && window.MusicKit) {
-      try {
-        const music = window.MusicKit.getInstance();
-        if (music.isAuthorized) {
-          const searchResults = await music.api.search(query, {
-            types: ['songs'],
-            limit: 20
-          });
-
-          if (searchResults.songs) {
-            return searchResults.songs.data.map((song: any) => ({
-              id: song.id,
-              title: song.attributes.name,
-              artist: song.attributes.artistName,
-              album: song.attributes.albumName,
-              artwork: song.attributes.artwork?.url?.replace('{w}x{h}', '300x300') || '',
-              duration: song.attributes.durationInMillis / 1000,
-              previewUrl: song.attributes.previews?.[0]?.url,
-              appleMusicUrl: song.attributes.url
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Apple Music search error:', error);
-      }
-    }
-
-    // Fallback to mock data
-    return [
-      {
-        id: '1',
-        title: 'Till I Collapse',
-        artist: 'Eminem',
-        album: 'The Eminem Show',
-        artwork: 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg',
-        duration: 297,
-        previewUrl: '',
-        appleMusicUrl: ''
-      },
-      {
-        id: '2',
-        title: 'Lose Yourself',
-        artist: 'Eminem',
-        album: '8 Mile Soundtrack',
-        artwork: 'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg',
-        duration: 326,
-        previewUrl: '',
-        appleMusicUrl: ''
-      }
-    ];
-  }
-
-  // Play a song (if Apple Music is available)
-  async playSong(songId: string): Promise<boolean> {
-    if (!this.isAppleDevice || !window.MusicKit) {
-      return false;
-    }
-
-    try {
-      const music = window.MusicKit.getInstance();
-      if (music.isAuthorized) {
-        await music.setQueue({ song: songId });
-        await music.play();
-        return true;
-      }
-    } catch (error) {
-      console.error('Play song error:', error);
-    }
-
-    return false;
-  }
-
-  // Open song in Apple Music or Spotify
-  openSong(song: Song) {
-    if (this.isAppleDevice && song.appleMusicUrl) {
-      window.open(song.appleMusicUrl, '_blank');
-    } else if (song.spotifyUrl) {
-      window.open(song.spotifyUrl, '_blank');
-    } else {
-      // Search on Apple Music or Spotify
-      const query = encodeURIComponent(`${song.title} ${song.artist}`);
-      if (this.isAppleDevice) {
-        window.open(`https://music.apple.com/search?term=${query}`, '_blank');
-      } else {
-        window.open(`https://open.spotify.com/search/${query}`, '_blank');
-      }
-    }
   }
 
   // Format duration from seconds to mm:ss

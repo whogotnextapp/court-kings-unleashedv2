@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -7,6 +8,8 @@ import { musicService, type Song, type Playlist } from '@/services/musicService'
 
 const MusicPlayer = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [currentPlaylist, setCurrentPlaylist] = useState<Playlist | null>(null);
+  const [playlistTracks, setPlaylistTracks] = useState<Song[]>([]);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +23,13 @@ const MusicPlayer = () => {
       setIsLoading(true);
       const basketballPlaylists = await musicService.getBasketballPlaylists();
       setPlaylists(basketballPlaylists);
+      
+      // Autoload the default playlist
+      if (basketballPlaylists.length > 0) {
+        const defaultPlaylist = basketballPlaylists[0];
+        setCurrentPlaylist(defaultPlaylist);
+        loadPlaylistTracks(defaultPlaylist.id);
+      }
     } catch (error) {
       console.error('Failed to load playlists:', error);
     } finally {
@@ -27,25 +37,42 @@ const MusicPlayer = () => {
     }
   };
 
+  const loadPlaylistTracks = async (playlistId: string) => {
+    try {
+      const tracks = await musicService.getPlaylistTracks(playlistId);
+      setPlaylistTracks(tracks);
+      
+      // Set first track as current if available
+      if (tracks.length > 0) {
+        setCurrentSong(tracks[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load playlist tracks:', error);
+    }
+  };
+
   const handlePlaySong = async (song: Song) => {
     try {
-      const success = await musicService.playSong(song.id);
-      if (success) {
-        setCurrentSong(song);
-        setIsPlaying(true);
-      } else {
-        // Fallback to opening in music app
-        musicService.openSong(song);
-      }
+      await musicService.playSong(song.id);
+      setCurrentSong(song);
+      setIsPlaying(true);
     } catch (error) {
       console.error('Failed to play song:', error);
       musicService.openSong(song);
     }
   };
 
+  const handlePlayPlaylist = (playlist: Playlist) => {
+    setCurrentPlaylist(playlist);
+    loadPlaylistTracks(playlist.id);
+    musicService.openPlaylist(playlist.id);
+  };
+
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    // In a real implementation, this would control the actual playback
+    if (currentSong) {
+      musicService.openSong(currentSong);
+      setIsPlaying(!isPlaying);
+    }
   };
 
   if (isLoading) {
@@ -73,13 +100,31 @@ const MusicPlayer = () => {
       {currentSong && (
         <Card className="p-4 brand-gradient text-white">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center">
-              <Music className="w-8 h-8" />
+            <div className="w-16 h-16 bg-white/20 rounded-lg overflow-hidden">
+              {currentSong.artwork ? (
+                <img 
+                  src={currentSong.artwork} 
+                  alt={currentSong.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Music className="w-8 h-8" />
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <h3 className="font-bold">{currentSong.title}</h3>
               <p className="text-white/80">{currentSong.artist}</p>
             </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:bg-white/20"
+              onClick={() => musicService.openSong(currentSong)}
+            >
+              <ExternalLink className="w-5 h-5" />
+            </Button>
           </div>
           
           {/* Controls */}
@@ -111,14 +156,65 @@ const MusicPlayer = () => {
         </Card>
       )}
 
+      {/* Current Playlist Tracks */}
+      {playlistTracks.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold">Current Playlist</h2>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {playlistTracks.map((track, index) => (
+              <Card 
+                key={track.id} 
+                className={`p-3 hover:shadow-md transition-shadow cursor-pointer ${
+                  currentSong?.id === track.id ? 'ring-2 ring-brand-magenta' : ''
+                }`}
+                onClick={() => handlePlaySong(track)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                    {track.artwork ? (
+                      <img 
+                        src={track.artwork} 
+                        alt={track.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Music className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-sm truncate">{track.title}</h4>
+                    <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {musicService.formatDuration(track.duration)}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Playlists */}
       <div className="space-y-4">
         <h2 className="text-xl font-bold">Basketball Playlists</h2>
         {playlists.map((playlist) => (
           <Card key={playlist.id} className="p-4 hover:shadow-lg transition-shadow">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-brand-gradient rounded-lg flex items-center justify-center">
-                <Music className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-brand-gradient rounded-lg overflow-hidden">
+                {playlist.artwork ? (
+                  <img 
+                    src={playlist.artwork} 
+                    alt={playlist.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Music className="w-8 h-8 text-white" />
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <h3 className="font-bold">{playlist.name}</h3>
@@ -130,10 +226,7 @@ const MusicPlayer = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {
-                  // In a real implementation, this would load and play the playlist
-                  console.log('Playing playlist:', playlist.name);
-                }}
+                onClick={() => handlePlayPlaylist(playlist)}
               >
                 <Play className="w-4 h-4 mr-2" />
                 Play
@@ -143,20 +236,21 @@ const MusicPlayer = () => {
         ))}
       </div>
 
-      {/* Apple Music Integration Notice */}
-      <Card className="p-4 bg-gray-50">
+      {/* Spotify Integration Notice */}
+      <Card className="p-4 bg-green-50">
         <div className="text-center">
-          <Volume2 className="w-8 h-8 mx-auto mb-2 text-brand-magenta" />
-          <h3 className="font-semibold mb-2">Enhanced Music Experience</h3>
+          <Volume2 className="w-8 h-8 mx-auto mb-2 text-green-600" />
+          <h3 className="font-semibold mb-2">Powered by Spotify</h3>
           <p className="text-sm text-muted-foreground mb-3">
-            Connect with Apple Music for full playback control and personalized playlists
+            Tap any song to open it in Spotify for full playback control
           </p>
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => musicService.initializeAppleMusic()}
+            className="border-green-600 text-green-600 hover:bg-green-50"
+            onClick={() => window.open('https://open.spotify.com/', '_blank')}
           >
-            Connect Apple Music
+            Open Spotify
           </Button>
         </div>
       </Card>
