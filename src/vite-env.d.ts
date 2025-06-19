@@ -6,6 +6,7 @@ declare global {
   interface Window {
     mapkit?: {
       init: (options: any) => void;
+      Map: new (element: HTMLElement, options?: any) => any;
       Search: new (options: any) => {
         search: (query: string) => Promise<{
           places: Array<{
