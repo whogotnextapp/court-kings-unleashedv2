@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Music, Youtube } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Onboarding from '@/components/Onboarding';
-import EnhancedMapView from '@/components/EnhancedMapView';
+import MapView from '@/components/MapView'; // ✅ Replace EnhancedMapView here
 import PlayerProfile from '@/components/PlayerProfile';
 import Leaderboard from '@/components/Leaderboard';
 import PremiumUpgrade from '@/components/PremiumUpgrade';
@@ -17,7 +17,6 @@ const Index = () => {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user has completed onboarding
     const onboardingComplete = localStorage.getItem('wgn_onboarding_complete');
     setIsFirstTime(!onboardingComplete);
   }, []);
@@ -49,7 +48,6 @@ const Index = () => {
     setCurrentView('map');
   };
 
-  // Show onboarding for first-time users
   if (isFirstTime) {
     return (
       <Layout>
@@ -58,7 +56,6 @@ const Index = () => {
     );
   }
 
-  // Show join game flow
   if (selectedGameId) {
     return (
       <Layout>
@@ -71,7 +68,6 @@ const Index = () => {
     );
   }
 
-  // Show premium upgrade screen
   if (currentView === 'upgrade') {
     return (
       <Layout>
@@ -80,11 +76,10 @@ const Index = () => {
     );
   }
 
-  // Main app views
   const renderCurrentView = () => {
     switch (currentView) {
       case 'map':
-        return <EnhancedMapView onJoinGame={handleJoinGame} />;
+        return <MapView onJoinGame={handleJoinGame} />; // ✅ MapView here
       case 'profile':
         return <PlayerProfile onUpgrade={handleUpgrade} />;
       case 'leaderboard':
@@ -94,7 +89,7 @@ const Index = () => {
       case 'podcast':
         return <PodcastPlayer />;
       default:
-        return <EnhancedMapView onJoinGame={handleJoinGame} />;
+        return <MapView onJoinGame={handleJoinGame} />;
     }
   };
 

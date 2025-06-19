@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
-import { MapPin, Users, Clock, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Users, Clock, Star } from 'lucide-react';
 
 interface GamePin {
   id: string;
@@ -52,55 +53,80 @@ const mockGames: GamePin[] = [
   }
 ];
 
-interface MapViewProps {
-  onJoinGame: (gameId: string) => void;
-}
+const containerStyle = {
+  width: '100%',
+  height: '100vh'
+};
 
-const MapView = ({ onJoinGame }: MapViewProps) => {
+const defaultCenter = {
+  lat: 40.7580,
+  lng: -73.9855
+};
+
+const MapView = ({ onJoinGame }: { onJoinGame: (gameId: string) => void }) => {
   const [selectedGame, setSelectedGame] = useState<GamePin | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+        }
+      );
+    }
+  }, []);
 
   const getSkillColor = (level: string) => {
     switch (level) {
-      case 'Elite': return 'text-red-500';
-      case 'Pro': return 'text-orange-500';
-      case 'Rookie': return 'text-green-500';
-      default: return 'text-gray-500';
+      case 'Elite':
+        return 'text-red-500';
+      case 'Pro':
+        return 'text-orange-500';
+      case 'Rookie':
+        return 'text-green-500';
+      default:
+        return 'text-gray-500';
     }
   };
 
   return (
-    <div className="relative h-full bg-gray-100">
-      {/* Mock Map Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300">
-        <div className="absolute inset-0 opacity-20">
-          <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzAwMCIgZmlsbC1vcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] repeat"></div>
-        </div>
-      </div>
+    <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={userLocation || defaultCenter}
+        zoom={13}
+      >
+        {/* Game Pins */}
+        {mockGames.map((game) => (
+          <Marker
+            key={game.id}
+            position={{ lat: game.lat, lng: game.lng }}
+            onClick={() => setSelectedGame(game)}
+          />
+        ))}
 
-      {/* Game Pins */}
-      {mockGames.map((game) => (
-        <button
-          key={game.id}
-          className="absolute animate-bounce-in"
-          style={{
-            left: `${(game.lng + 74) * 800}px`,
-            top: `${(40.77 - game.lat) * 1000}px`,
-          }}
-          onClick={() => setSelectedGame(game)}
-        >
-          <div className="relative">
-            <MapPin className="w-8 h-8 text-brand-magenta drop-shadow-lg" fill="currentColor" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-xs font-bold text-brand-magenta">
-              {game.playerCount}
-            </div>
-          </div>
-        </button>
-      ))}
+        {/* User Blue Dot */}
+        {userLocation && (
+          <Marker
+            position={userLocation}
+            icon={{
+              url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            }}
+          />
+        )}
+      </GoogleMap>
 
-      {/* Game Details Card */}
+      {/* Game Info Card */}
       {selectedGame && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in">
-          <Card className="p-4 glass-effect border-2 border-white/30">
+        <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in z-50">
+          <Card className="p-4 glass-effect border-2 border-white/30 bg-black/70">
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-bold text-lg text-white">{selectedGame.courtName}</h3>
@@ -119,7 +145,6 @@ const MapView = ({ onJoinGame }: MapViewProps) => {
                 ×
               </button>
             </div>
-            
             <div className="flex items-center gap-4 mb-4 text-white/90">
               <div className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
@@ -130,8 +155,7 @@ const MapView = ({ onJoinGame }: MapViewProps) => {
                 <span className="text-sm">{selectedGame.startTime}</span>
               </div>
             </div>
-
-            <Button 
+            <Button
               onClick={() => onJoinGame(selectedGame.id)}
               className="w-full brand-gradient text-white font-bold hover:scale-105 transition-transform"
             >
@@ -140,19 +164,9 @@ const MapView = ({ onJoinGame }: MapViewProps) => {
           </Card>
         </div>
       )}
-
-      {/* Search Bar */}
-      <div className="absolute top-4 left-4 right-4">
-        <div className="glass-effect rounded-full px-4 py-3">
-          <input
-            type="text"
-            placeholder="Search courts in your area..."
-            className="w-full bg-transparent text-white placeholder-white/70 outline-none"
-          />
-        </div>
-      </div>
-    </div>
+    </LoadScript>
   );
 };
 
 export default MapView;
+
