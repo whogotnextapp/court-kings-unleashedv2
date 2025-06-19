@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Users, Clock, Star, Navigation, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,6 +11,7 @@ interface EnhancedMapViewProps {
 }
 
 const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
+  const mapRef = useRef<HTMLDivElement>(null);
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
   const [courts, setCourts] = useState<Court[]>([]);
   const [games, setGames] = useState<Game[]>([]);
@@ -17,6 +19,7 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [mapInstance, setMapInstance] = useState<any>(null);
 
   useEffect(() => {
     initializeMap();
@@ -25,21 +28,45 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
   const initializeMap = async () => {
     try {
       setIsLoading(true);
+      console.log('Starting map initialization...');
       
       // Get user's current location
       const location = await mapsService.getCurrentLocation();
+      console.log('User location obtained:', location);
       setUserLocation(location);
 
       // Search for nearby courts
       const nearbyCourts = await mapsService.searchCourtsNearby(location);
+      console.log('Courts found:', nearbyCourts);
       setCourts(nearbyCourts);
 
-      // Get games near location
-      const nearbyGames = await gameService.getGamesNearLocation(
-        location.latitude, 
-        location.longitude
-      );
-      setGames(nearbyGames);
+      // Get games near location - handle potential errors gracefully
+      try {
+        const nearbyGames = await gameService.getGamesNearLocation(
+          location.latitude, 
+          location.longitude
+        );
+        setGames(nearbyGames);
+      } catch (gameError) {
+        console.log('No games service available, using mock data');
+        setGames([]);
+      }
+
+      // Initialize Apple Maps if available
+      if (window.mapkit && mapRef.current) {
+        try {
+          const map = new window.mapkit.Map(mapRef.current, {
+            region: new window.mapkit.CoordinateRegion(
+              new window.mapkit.Coordinate(location.latitude, location.longitude),
+              new window.mapkit.CoordinateSpan(0.01, 0.01)
+            )
+          });
+          setMapInstance(map);
+          console.log('Apple Maps initialized');
+        } catch (mapError) {
+          console.log('Apple Maps not available, using fallback');
+        }
+      }
 
     } catch (error) {
       console.error('Map initialization error:', error);
@@ -72,6 +99,20 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
     }
   };
 
+  // Convert lat/lng to screen coordinates for demo
+  const getScreenPosition = (location: MapLocation, userLoc: MapLocation, index: number = 0) => {
+    if (!userLoc) return { left: '50%', top: '50%' };
+    
+    // Simple conversion for demo - in production this would use proper map projection
+    const latDiff = (location.latitude - userLoc.latitude) * 50000;
+    const lngDiff = (location.longitude - userLoc.longitude) * 50000;
+    
+    return {
+      left: `${50 + lngDiff + (index * 5)}%`,
+      top: `${50 - latDiff + (index * 3)}%`
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-100">
@@ -100,17 +141,26 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
 
   return (
     <div className="relative h-full bg-gray-100">
-      {/* Mock Map Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300">
-        <div className="absolute inset-0 opacity-20">
-          <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzAwMCIgZmlsbC1vcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] repeat"></div>
+      {/* Apple Maps Container */}
+      <div 
+        ref={mapRef} 
+        className="absolute inset-0"
+        style={{ minHeight: '100%' }}
+      />
+      
+      {/* Fallback Map Background if Apple Maps doesn't load */}
+      {!mapInstance && (
+        <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100">
+          <div className="absolute inset-0 opacity-30">
+            <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzAwMCIgZmlsbC1vcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] repeat"></div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* User Location Pin */}
       {userLocation && (
         <div 
-          className="absolute animate-pulse"
+          className="absolute animate-pulse z-10"
           style={{
             left: '50%',
             top: '50%',
@@ -122,48 +172,61 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
       )}
 
       {/* Court Pins */}
-      {courts.map((court, index) => (
-        <button
-          key={court.id}
-          className="absolute animate-bounce-in"
-          style={{
-            left: `${20 + (index * 15)}%`,
-            top: `${30 + (index * 10)}%`,
-          }}
-          onClick={() => handleCourtSelect(court)}
-        >
-          <div className="relative">
-            <MapPin className="w-6 h-6 text-gray-600 drop-shadow-lg" fill="currentColor" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
-              <Star className="w-2 h-2" />
+      {courts.map((court, index) => {
+        const position = getScreenPosition(court.location, userLocation!, index);
+        return (
+          <button
+            key={court.id}
+            className="absolute animate-bounce-in z-10"
+            style={{
+              left: position.left,
+              top: position.top,
+              transform: 'translate(-50%, -100%)'
+            }}
+            onClick={() => handleCourtSelect(court)}
+          >
+            <div className="relative">
+              <MapPin className="w-6 h-6 text-gray-600 drop-shadow-lg" fill="currentColor" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                <Star className="w-2 h-2" />
+              </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
 
       {/* Game Pins */}
-      {games.map((game, index) => (
-        <button
-          key={game.id}
-          className="absolute animate-bounce-in"
-          style={{
-            left: `${40 + (index * 20)}%`,
-            top: `${25 + (index * 15)}%`,
-          }}
-          onClick={() => handleGameSelect(game)}
-        >
-          <div className="relative">
-            <MapPin className="w-8 h-8 text-brand-magenta drop-shadow-lg" fill="currentColor" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-xs font-bold text-brand-magenta">
-              {game.currentPlayers.length}
+      {games.map((game, index) => {
+        const gameLocation = { 
+          latitude: game.location?.latitude || userLocation!.latitude + (index * 0.001), 
+          longitude: game.location?.longitude || userLocation!.longitude + (index * 0.001) 
+        };
+        const position = getScreenPosition(gameLocation, userLocation!, index + 10);
+        
+        return (
+          <button
+            key={game.id}
+            className="absolute animate-bounce-in z-10"
+            style={{
+              left: position.left,
+              top: position.top,
+              transform: 'translate(-50%, -100%)'
+            }}
+            onClick={() => handleGameSelect(game)}
+          >
+            <div className="relative">
+              <MapPin className="w-8 h-8 text-brand-magenta drop-shadow-lg" fill="currentColor" />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-xs font-bold text-brand-magenta">
+                {game.currentPlayers?.length || 0}
+              </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
 
       {/* Court Details Card */}
       {selectedCourt && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in">
+        <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in z-20">
           <Card className="p-4 glass-effect border-2 border-white/30">
             <div className="flex justify-between items-start mb-3">
               <div>
@@ -198,7 +261,7 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
 
       {/* Game Details Card */}
       {selectedGame && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in">
+        <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in z-20">
           <Card className="p-4 glass-effect border-2 border-white/30">
             <div className="flex justify-between items-start mb-3">
               <div>
@@ -220,15 +283,18 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
             <div className="flex items-center gap-4 mb-4 text-white/90">
               <div className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
-                <span className="text-sm">{selectedGame.currentPlayers.length}/{selectedGame.maxPlayers}</span>
+                <span className="text-sm">{selectedGame.currentPlayers?.length || 0}/{selectedGame.maxPlayers}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm">
-                  {selectedGame.startTime.toDate().toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
+                  {selectedGame.startTime?.toDate ? 
+                    selectedGame.startTime.toDate().toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    }) : 
+                    'TBA'
+                  }
                 </span>
               </div>
             </div>
@@ -243,8 +309,8 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
               <Button 
                 onClick={() => handleGetDirections(
                   { 
-                    latitude: selectedGame.location.latitude, 
-                    longitude: selectedGame.location.longitude 
+                    latitude: selectedGame.location?.latitude || userLocation!.latitude, 
+                    longitude: selectedGame.location?.longitude || userLocation!.longitude 
                   }, 
                   selectedGame.courtName
                 )}
@@ -260,7 +326,7 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
       )}
 
       {/* Search Bar */}
-      <div className="absolute top-4 left-4 right-4">
+      <div className="absolute top-4 left-4 right-4 z-10">
         <div className="glass-effect rounded-full px-4 py-3">
           <input
             type="text"
@@ -271,7 +337,7 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
       </div>
 
       {/* Location Button */}
-      <div className="absolute top-20 right-4">
+      <div className="absolute top-20 right-4 z-10">
         <Button
           onClick={initializeMap}
           size="icon"

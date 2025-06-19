@@ -17,6 +17,23 @@
     <meta name="twitter:image" content="/lovable-uploads/95ed223e-937f-4abc-acb0-70ef3e90c4d8.png" />
     
     <link rel="icon" href="/lovable-uploads/95ed223e-937f-4abc-acb0-70ef3e90c4d8.png" type="image/png">
+    
+    <!-- Apple MapKit JS -->
+    <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+    <script>
+      // Initialize MapKit when it loads
+      window.addEventListener('DOMContentLoaded', function() {
+        if (window.mapkit) {
+          mapkit.init({
+            authorizationCallback: function(done) {
+              // For demo purposes, we'll use a demo token
+              // In production, you'd need to generate a proper JWT token
+              done('demo-token');
+            }
+          });
+        }
+      });
+    </script>
   </head>
 
   <body>
