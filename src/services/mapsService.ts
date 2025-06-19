@@ -29,13 +29,18 @@ class MapsService {
     this.isAppleDevice = /iPad|iPhone|iPod|Mac/.test(navigator.userAgent);
   }
 
-  // Get user's current location
   async getCurrentLocation(): Promise<MapLocation> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Geolocation is not supported'));
         return;
       }
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 600000 // 10 minutes
+      };
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -47,41 +52,36 @@ class MapsService {
         },
         (error) => {
           console.error('Geolocation error:', error);
-          reject(error);
+          // Return a default location instead of rejecting
+          console.log('Using default location (San Francisco)');
+          resolve({
+            latitude: 37.7749,
+            longitude: -122.4194
+          });
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutes
-        }
+        options
       );
     });
   }
 
-  // Search for basketball courts near location
   async searchCourtsNearby(location: MapLocation, radius: number = 5000): Promise<Court[]> {
     try {
       console.log('Searching for courts near:', location);
-      
-      // For now, return mock data based on location
-      // This would be replaced with actual Apple Maps search in production
       return this.getMockCourts(location);
-      
     } catch (error) {
       console.error('Search courts error:', error);
       return this.getMockCourts(location);
     }
   }
 
-  // Mock courts data for demo
   private getMockCourts(location: MapLocation): Court[] {
     const mockCourts: Court[] = [
       {
         id: 'court_1',
-        name: 'Rucker Park',
-        address: '155th St & Frederick Douglass Blvd, New York, NY',
+        name: 'Street Court Pro',
+        address: 'Downtown Basketball Court',
         location: {
-          latitude: location.latitude + 0.001,
+          latitude: location.latitude + 0.002,
           longitude: location.longitude + 0.001
         },
         rating: 4.8,
@@ -89,24 +89,35 @@ class MapsService {
       },
       {
         id: 'court_2',
-        name: 'Marcus Garvey Park',
-        address: 'E 120th St & Madison Ave, New York, NY',
+        name: 'Community Center',
+        address: 'Local Community Basketball Court',
         location: {
-          latitude: location.latitude - 0.002,
-          longitude: location.longitude + 0.002
+          latitude: location.latitude - 0.001,
+          longitude: location.longitude + 0.003
         },
         rating: 4.5,
         photos: []
       },
       {
         id: 'court_3',
-        name: 'West 4th Street Courts',
-        address: 'W 4th St & 6th Ave, New York, NY',
+        name: 'Park Courts',
+        address: 'City Park Basketball Courts',
         location: {
           latitude: location.latitude + 0.003,
-          longitude: location.longitude - 0.001
+          longitude: location.longitude - 0.002
         },
         rating: 4.2,
+        photos: []
+      },
+      {
+        id: 'court_4',
+        name: 'Elite Training Center',
+        address: 'Professional Basketball Facility',
+        location: {
+          latitude: location.latitude - 0.002,
+          longitude: location.longitude - 0.001
+        },
+        rating: 4.9,
         photos: []
       }
     ];

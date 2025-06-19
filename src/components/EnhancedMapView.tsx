@@ -1,10 +1,16 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Users, Clock, Star, Navigation, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { mapsService, type MapLocation, type Court } from '@/services/mapsService';
 import { gameService, type Game } from '@/services/gameService';
+
+// Extend Window interface for MapKit
+declare global {
+  interface Window {
+    mapkit: any;
+  }
+}
 
 interface EnhancedMapViewProps {
   onJoinGame: (gameId: string) => void;
@@ -28,59 +34,109 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
   const initializeMap = async () => {
     try {
       setIsLoading(true);
-      console.log('Starting map initialization...');
+      setLocationError(null);
+      console.log('Starting enhanced map initialization...');
       
       // Get user's current location first
-      const location = await mapsService.getCurrentLocation();
-      console.log('User location obtained:', location);
-      setUserLocation(location);
-
-      // Search for nearby courts
-      const nearbyCourts = await mapsService.searchCourtsNearby(location);
-      console.log('Courts found:', nearbyCourts);
-      setCourts(nearbyCourts);
-
-      // Get games near location
       try {
-        const nearbyGames = await gameService.getGamesNearLocation(
-          location.latitude, 
-          location.longitude
-        );
-        setGames(nearbyGames);
-      } catch (gameError) {
-        console.log('No games service available, continuing without games');
-        setGames([]);
-      }
+        const location = await mapsService.getCurrentLocation();
+        console.log('User location obtained:', location);
+        setUserLocation(location);
 
-      // Initialize Apple Maps if available
-      if (window.mapkit && mapRef.current) {
+        // Search for nearby courts
+        const nearbyCourts = await mapsService.searchCourtsNearby(location);
+        console.log('Courts found:', nearbyCourts);
+        setCourts(nearbyCourts);
+
+        // Get games near location
         try {
-          // Wait for mapkit to be fully loaded
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const map = new window.mapkit.Map(mapRef.current, {
-            region: new window.mapkit.CoordinateRegion(
-              new window.mapkit.Coordinate(location.latitude, location.longitude),
-              new window.mapkit.CoordinateSpan(0.01, 0.01)
-            ),
-            showsUserLocation: true,
-            showsUserLocationControl: true
-          });
-          
-          setMapInstance(map);
-          console.log('Apple Maps initialized successfully');
-        } catch (mapError) {
-          console.log('Apple Maps initialization failed:', mapError);
+          const nearbyGames = await gameService.getGamesNearLocation(
+            location.latitude, 
+            location.longitude
+          );
+          setGames(nearbyGames);
+        } catch (gameError) {
+          console.log('No games service available, using mock games');
+          // Create some mock games for demo
+          setGames([
+            {
+              id: 'game1',
+              courtName: 'Local Court',
+              skillLevel: 'Pro',
+              currentPlayers: ['user1', 'user2'],
+              maxPlayers: 10,
+              startTime: { toDate: () => new Date(Date.now() + 3600000) },
+              location: { latitude: location.latitude + 0.001, longitude: location.longitude + 0.001 }
+            } as Game
+          ]);
         }
-      } else {
-        console.log('Apple Maps not available, using fallback visualization');
+
+        // Initialize map with better error handling
+        await initializeMapView(location);
+        
+      } catch (locationError) {
+        console.error('Location error:', locationError);
+        setLocationError('Unable to get your location. Please enable location services.');
+        
+        // Use default location (San Francisco) as fallback
+        const defaultLocation = { latitude: 37.7749, longitude: -122.4194 };
+        setUserLocation(defaultLocation);
+        const nearbyCourts = await mapsService.searchCourtsNearby(defaultLocation);
+        setCourts(nearbyCourts);
+        await initializeMapView(defaultLocation);
       }
 
     } catch (error) {
-      console.error('Map initialization error:', error);
-      setLocationError('Unable to get your location. Please enable location services and refresh.');
+      console.error('Map initialization failed completely:', error);
+      setLocationError('Map initialization failed. Using fallback view.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const initializeMapView = async (location: MapLocation) => {
+    if (!mapRef.current) return;
+
+    try {
+      // Wait for MapKit to be available
+      let attempts = 0;
+      while (!window.mapkit && attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+      }
+
+      if (window.mapkit) {
+        console.log('MapKit available, initializing...');
+        
+        const map = new window.mapkit.Map(mapRef.current, {
+          region: new window.mapkit.CoordinateRegion(
+            new window.mapkit.Coordinate(location.latitude, location.longitude),
+            new window.mapkit.CoordinateSpan(0.01, 0.01)
+          ),
+          showsUserLocation: true,
+          showsUserLocationControl: true,
+          mapType: window.mapkit.Map.MapTypes.Standard
+        });
+        
+        // Add markers for courts
+        courts.forEach(court => {
+          const annotation = new window.mapkit.MarkerAnnotation(
+            new window.mapkit.Coordinate(court.location.latitude, court.location.longitude),
+            {
+              title: court.name,
+              subtitle: court.address
+            }
+          );
+          map.addAnnotation(annotation);
+        });
+
+        setMapInstance(map);
+        console.log('MapKit initialized successfully');
+      } else {
+        console.log('MapKit not available, using fallback');
+      }
+    } catch (mapError) {
+      console.error('Map view initialization error:', mapError);
     }
   };
 
@@ -107,17 +163,15 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
     }
   };
 
-  // Convert lat/lng to screen coordinates for demo
   const getScreenPosition = (location: MapLocation, userLoc: MapLocation, index: number = 0) => {
     if (!userLoc) return { left: '50%', top: '50%' };
     
-    // Simple conversion for demo - in production this would use proper map projection
     const latDiff = (location.latitude - userLoc.latitude) * 50000;
     const lngDiff = (location.longitude - userLoc.longitude) * 50000;
     
     return {
-      left: `${50 + lngDiff + (index * 5)}%`,
-      top: `${50 - latDiff + (index * 3)}%`
+      left: `${Math.max(10, Math.min(90, 50 + lngDiff + (index * 5)))}%`,
+      top: `${Math.max(10, Math.min(90, 50 - latDiff + (index * 3)))}%`
     };
   };
 
@@ -132,54 +186,52 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
     );
   }
 
-  if (locationError) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gray-100 p-4">
-        <Card className="p-6 text-center max-w-sm">
-          <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <h3 className="font-semibold mb-2">Location Required</h3>
-          <p className="text-sm text-muted-foreground mb-4">{locationError}</p>
-          <Button onClick={initializeMap} variant="outline">
-            Try Again
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="relative h-full bg-gray-100">
       {/* Apple Maps Container */}
       <div 
         ref={mapRef} 
-        className="absolute inset-0"
-        style={{ minHeight: '100%' }}
+        className="absolute inset-0 w-full h-full"
       />
       
-      {/* Fallback Map Background if Apple Maps doesn't load */}
+      {/* Enhanced Fallback Map */}
       {!mapInstance && (
-        <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100">
-          <div className="absolute inset-0 opacity-30">
-            <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzAwMCIgZmlsbC1vcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] repeat"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-blue-50 to-green-100">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
+                             radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                             radial-gradient(circle at 40% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%)`
+          }}>
+            <div className="w-full h-full opacity-20" style={{
+              backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(0,0,0,0.02) 20px, rgba(0,0,0,0.02) 40px)`
+            }}></div>
           </div>
+          {locationError && (
+            <div className="absolute top-4 left-4 right-4">
+              <Card className="p-3 bg-yellow-50 border-yellow-200">
+                <p className="text-yellow-800 text-sm">{locationError}</p>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 
       {/* User Location Pin */}
       {userLocation && (
         <div 
-          className="absolute animate-pulse z-10"
+          className="absolute z-10 animate-pulse"
           style={{
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)'
           }}
         >
-          <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>
+          <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg">
+            <div className="w-8 h-8 bg-blue-400 rounded-full opacity-30 animate-ping absolute -top-2 -left-2"></div>
+          </div>
         </div>
       )}
 
-      {/* Court Pins */}
       {courts.map((court, index) => {
         const position = getScreenPosition(court.location, userLocation!, index);
         return (
@@ -203,7 +255,6 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
         );
       })}
 
-      {/* Game Pins */}
       {games.map((game, index) => {
         const gameLocation = { 
           latitude: game.location?.latitude || userLocation!.latitude + (index * 0.001), 
@@ -232,7 +283,6 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
         );
       })}
 
-      {/* Court Details Card */}
       {selectedCourt && (
         <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in z-20">
           <Card className="p-4 glass-effect border-2 border-white/30">
@@ -267,7 +317,6 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
         </div>
       )}
 
-      {/* Game Details Card */}
       {selectedGame && (
         <div className="absolute bottom-0 left-0 right-0 p-4 animate-fade-in z-20">
           <Card className="p-4 glass-effect border-2 border-white/30">
@@ -333,7 +382,6 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
         </div>
       )}
 
-      {/* Search Bar */}
       <div className="absolute top-4 left-4 right-4 z-10">
         <div className="glass-effect rounded-full px-4 py-3">
           <input
@@ -344,7 +392,6 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
         </div>
       </div>
 
-      {/* Location Button */}
       <div className="absolute top-20 right-4 z-10">
         <Button
           onClick={initializeMap}
