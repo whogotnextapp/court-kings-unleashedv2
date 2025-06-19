@@ -24,13 +24,18 @@
       // Initialize MapKit when it loads
       window.addEventListener('DOMContentLoaded', function() {
         if (window.mapkit) {
-          mapkit.init({
-            authorizationCallback: function(done) {
-              // For demo purposes, we'll use a demo token
-              // In production, you'd need to generate a proper JWT token
-              done('demo-token');
-            }
-          });
+          try {
+            mapkit.init({
+              authorizationCallback: function(done) {
+                // Using demo token - in production you'd need a proper JWT
+                done('demo-token');
+              },
+              language: 'en'
+            });
+            console.log('MapKit initialized successfully');
+          } catch (error) {
+            console.log('MapKit initialization error:', error);
+          }
         }
       });
     </script>

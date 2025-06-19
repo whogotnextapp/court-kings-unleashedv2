@@ -164,9 +164,10 @@ class YouTubeService {
     }
   }
 
-  // Open video in YouTube app or web
-  openVideo(videoId: string) {
-    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  // Open video in YouTube app or web with autoplay
+  openVideo(videoId: string, autoplay: boolean = true) {
+    const autoplayParam = autoplay ? '&autoplay=1' : '';
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}${autoplayParam}`;
     
     // Try to open in YouTube app first (mobile)
     if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {

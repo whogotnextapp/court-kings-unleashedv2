@@ -30,7 +30,7 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
       setIsLoading(true);
       console.log('Starting map initialization...');
       
-      // Get user's current location
+      // Get user's current location first
       const location = await mapsService.getCurrentLocation();
       console.log('User location obtained:', location);
       setUserLocation(location);
@@ -40,7 +40,7 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
       console.log('Courts found:', nearbyCourts);
       setCourts(nearbyCourts);
 
-      // Get games near location - handle potential errors gracefully
+      // Get games near location
       try {
         const nearbyGames = await gameService.getGamesNearLocation(
           location.latitude, 
@@ -48,29 +48,37 @@ const EnhancedMapView = ({ onJoinGame }: EnhancedMapViewProps) => {
         );
         setGames(nearbyGames);
       } catch (gameError) {
-        console.log('No games service available, using mock data');
+        console.log('No games service available, continuing without games');
         setGames([]);
       }
 
       // Initialize Apple Maps if available
       if (window.mapkit && mapRef.current) {
         try {
+          // Wait for mapkit to be fully loaded
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           const map = new window.mapkit.Map(mapRef.current, {
             region: new window.mapkit.CoordinateRegion(
               new window.mapkit.Coordinate(location.latitude, location.longitude),
               new window.mapkit.CoordinateSpan(0.01, 0.01)
-            )
+            ),
+            showsUserLocation: true,
+            showsUserLocationControl: true
           });
+          
           setMapInstance(map);
-          console.log('Apple Maps initialized');
+          console.log('Apple Maps initialized successfully');
         } catch (mapError) {
-          console.log('Apple Maps not available, using fallback');
+          console.log('Apple Maps initialization failed:', mapError);
         }
+      } else {
+        console.log('Apple Maps not available, using fallback visualization');
       }
 
     } catch (error) {
       console.error('Map initialization error:', error);
-      setLocationError('Unable to get your location. Please enable location services.');
+      setLocationError('Unable to get your location. Please enable location services and refresh.');
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,3 @@
-
 // Spotify Web API service
 export interface Song {
   id: string;
@@ -67,15 +66,16 @@ class MusicService {
     }
   }
 
-  // Get basketball-themed playlists (including the default one)
+  // Get your main basketball playlist
   async getBasketballPlaylists(): Promise<Playlist[]> {
     try {
       const token = await this.getAccessToken();
       if (!token) {
-        return this.getFallbackPlaylists();
+        console.warn('No Spotify token available');
+        return [];
       }
 
-      // Get the specific playlist
+      // Get the specific playlist only
       const playlistResponse = await fetch(
         `https://api.spotify.com/v1/playlists/${this.defaultPlaylistId}`,
         {
@@ -97,36 +97,13 @@ class MusicService {
         description: playlistData.description || 'Basketball workout playlist',
         artwork: playlistData.images?.[0]?.url || '',
         songs: [],
-        duration: playlistData.tracks.total * 180 // Rough estimate
+        duration: playlistData.tracks.total * 180
       };
 
-      // Get additional basketball playlists through search
-      const searchResponse = await fetch(
-        'https://api.spotify.com/v1/search?q=basketball%20workout&type=playlist&limit=5',
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      let additionalPlaylists: Playlist[] = [];
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        additionalPlaylists = searchData.playlists.items.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          description: item.description || '',
-          artwork: item.images?.[0]?.url || '',
-          songs: [],
-          duration: item.tracks.total * 180
-        }));
-      }
-
-      return [playlist, ...additionalPlaylists];
+      return [playlist];
     } catch (error) {
       console.error('Spotify playlists error:', error);
-      return this.getFallbackPlaylists();
+      return [];
     }
   }
 

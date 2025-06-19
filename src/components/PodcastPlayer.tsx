@@ -13,10 +13,10 @@ const PodcastPlayer = () => {
   const channelId = 'UCRiOQv4UIFUAvyPgh-8g0dw';
 
   useEffect(() => {
-    loadPodcastData();
+    loadPodcastDataAndAutoplay();
   }, []);
 
-  const loadPodcastData = async () => {
+  const loadPodcastDataAndAutoplay = async () => {
     try {
       setIsLoading(true);
       
@@ -28,6 +28,13 @@ const PodcastPlayer = () => {
 
       setChannel(channelInfo);
       setVideos(latestVideos);
+
+      // Autoplay the latest video after a short delay
+      if (latestVideos.length > 0) {
+        setTimeout(() => {
+          youtubeService.openVideo(latestVideos[0].id, true);
+        }, 2000);
+      }
     } catch (error) {
       console.error('Failed to load podcast data:', error);
     } finally {
@@ -36,7 +43,7 @@ const PodcastPlayer = () => {
   };
 
   const handleVideoClick = (video: YouTubeVideo) => {
-    youtubeService.openVideo(video.id);
+    youtubeService.openVideo(video.id, true);
   };
 
   const formatViewCount = (count: string): string => {

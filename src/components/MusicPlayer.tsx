@@ -24,16 +24,36 @@ const MusicPlayer = () => {
       const basketballPlaylists = await musicService.getBasketballPlaylists();
       setPlaylists(basketballPlaylists);
       
-      // Autoload the default playlist
+      // Autoload and autoplay the first playlist
       if (basketballPlaylists.length > 0) {
         const defaultPlaylist = basketballPlaylists[0];
         setCurrentPlaylist(defaultPlaylist);
-        loadPlaylistTracks(defaultPlaylist.id);
+        await loadPlaylistTracksAndAutoplay(defaultPlaylist.id);
       }
     } catch (error) {
       console.error('Failed to load playlists:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadPlaylistTracksAndAutoplay = async (playlistId: string) => {
+    try {
+      const tracks = await musicService.getPlaylistTracks(playlistId);
+      setPlaylistTracks(tracks);
+      
+      // Autoplay first track
+      if (tracks.length > 0) {
+        const firstTrack = tracks[0];
+        setCurrentSong(firstTrack);
+        setIsPlaying(true);
+        // Open in Spotify for actual playback
+        setTimeout(() => {
+          musicService.openSong(firstTrack);
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Failed to load playlist tracks:', error);
     }
   };
 
@@ -80,8 +100,8 @@ const MusicPlayer = () => {
       <div className="p-4 space-y-6">
         <div className="text-center">
           <Music className="w-16 h-16 mx-auto mb-4 text-brand-magenta animate-pulse" />
-          <h2 className="text-2xl font-bold mb-2">Loading Music...</h2>
-          <p className="text-muted-foreground">Getting your basketball playlists ready</p>
+          <h2 className="text-2xl font-bold mb-2">Loading Your Playlist...</h2>
+          <p className="text-muted-foreground">Getting ready to play your basketball beats</p>
         </div>
       </div>
     );
