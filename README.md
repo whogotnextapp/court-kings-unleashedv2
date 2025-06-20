@@ -1,194 +1,105 @@
-# Who Got Next - Basketball Game Finder
+# 🏀 Who Got Next™ – Pickup Sports App
 
-A mobile-first React application for finding and joining local pickup basketball games, featuring real-time maps, music integration, and podcast content.
+**Who Got Next™** is a community-powered app for finding and joining **pickup basketball games** in your city. Built for hoopers, by hoopers — it's where reputation, music, and streetball culture come together.
 
-## Features
+---
 
-### 🏀 Core Basketball Features
-- **Game Discovery**: Find pickup games near your location
-- **Real-time Maps**: Apple Maps and Google Maps integration
-- **Game Management**: Create, join, and manage basketball games
-- **Player Profiles**: Track stats, wins, losses, and skill ratings
-- **Leaderboards**: City-wide rankings and competitions
-- **Court Finder**: Discover basketball courts with ratings and photos
+## 🚀 Features
 
-### 🎵 Entertainment Features
-- **Music Integration**: Apple Music API for basketball playlists
-- **Podcast Player**: YouTube API integration for "2 Tears in a Bucket" podcast
-- **Curated Playlists**: Basketball-themed music collections
-- **Audio Controls**: In-app music playback (iOS with Apple Music)
+* 🗘️ **Interactive Map** – See nearby pickup games, active players, and courts in real time
+* 🢑 **Player Profiles** – Win/loss records, skill level (auto-ranked), and premium status
+* 🎵 **Music Player** – Built-in Spotify playlist to keep the vibes right
+* 🎧 **Podcast Tab** – Listen to the “2 Tears in a Bucket” show inside the app
+* 🔐 **Google Authentication** – Quick, secure sign-in to track your record
 
-### 🔧 Technical Features
-- **Firebase Backend**: Authentication, Firestore database, cloud storage
-- **Real-time Updates**: Live game updates and player notifications
-- **Geolocation**: GPS-based court and game discovery
-- **Responsive Design**: Mobile-first with desktop support
-- **Progressive Web App**: Installable on mobile devices
+---
 
-## API Integrations
+## 🧱 Tech Stack
 
-### Firebase
-- **Authentication**: Email/password sign-up and sign-in
-- **Firestore**: Real-time database for games, users, courts
-- **Cloud Storage**: Profile pictures and court photos
-- **Analytics**: User engagement tracking
+| Layer      | Tech Used                                |
+| ---------- | ---------------------------------------- |
+| Frontend   | React (Vite + TypeScript) + Tailwind CSS |
+| Backend    | Firebase Auth, Firestore, and Storage    |
+| Mapping    | Google Maps API                          |
+| Media      | Spotify SDK + YouTube Embed              |
+| Deployment | GitHub Codespaces (Dev) / TBD (Prod)     |
 
-### Maps APIs
-- **Apple MapKit JS**: Native iOS map experience
-- **Google Maps API**: Cross-platform map functionality
-- **Geolocation**: Find nearby courts and games
-- **Directions**: Navigate to game locations
+---
 
-### YouTube API
-- **Channel Integration**: "2 Tears in a Bucket" podcast
-- **Video Streaming**: Latest episodes and highlights
-- **Search Functionality**: Find basketball-related content
-- **Playlist Management**: Curated video collections
+## 📦 Local Dev Setup
 
-### Apple Music API
-- **MusicKit JS**: Native iOS music integration
-- **Playlist Access**: Basketball workout playlists
-- **Playback Control**: In-app music controls
-- **Search**: Find basketball-themed music
+> You'll need Node.js (v18+) and Firebase CLI
 
-## Setup Instructions
-
-### 1. Environment Variables
-Create a `.env` file in the root directory:
-
-```env
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-
-# Google Maps API
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-
-# YouTube API
-VITE_YOUTUBE_API_KEY=your_youtube_api_key
-
-# Apple Music API
-VITE_APPLE_MUSIC_TOKEN=your_apple_music_developer_token
-
-# Podcast Channel
-VITE_PODCAST_CHANNEL_ID=UC2tearsinabucketpodcast707
-```
-
-### 2. Firebase Setup
-1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable Authentication (Email/Password)
-3. Create a Firestore database
-4. Enable Cloud Storage
-5. Copy your config values to the `.env` file
-
-### 3. Google Maps Setup
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Enable Maps JavaScript API and Places API
-3. Create an API key and restrict it to your domain
-4. Add the key to your `.env` file
-
-### 4. YouTube API Setup
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Enable YouTube Data API v3
-3. Create an API key
-4. Add the key to your `.env` file
-
-### 5. Apple Music Setup
-1. Join the Apple Developer Program
-2. Create a MusicKit identifier
-3. Generate a developer token
-4. Add the token to your `.env` file
-
-### 6. Install and Run
 ```bash
+git clone https://github.com/YOUR_USERNAME/who-got-next.git
+cd who-got-next
+
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Create .env.local and add your Firebase keys
+cp .env.example .env.local
 
-# Build for production
-npm run build
+# Run the dev server
+npm run dev
 ```
 
-## Project Structure
+---
+
+## 🔑 Environment Variables
+
+Here’s what you need to put in your `.env.local` file:
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+---
+
+## 📁 Folder Structure
 
 ```
 src/
-├── components/           # React components
-│   ├── ui/              # Reusable UI components
-│   ├── EnhancedMapView.tsx
-│   ├── MusicPlayer.tsx
-│   ├── PodcastPlayer.tsx
-│   └── ...
-├── services/            # API service layers
-│   ├── authService.ts   # Firebase authentication
-│   ├── gameService.ts   # Game management
-│   ├── mapsService.ts   # Maps integration
-│   ├── youtubeService.ts # YouTube API
-│   └── musicService.ts  # Apple Music API
-├── lib/                 # Utilities and config
-│   └── firebase.ts      # Firebase configuration
-└── pages/               # Page components
-    └── Index.tsx        # Main app page
+├── components/       # Music player, bottom tabs, layout
+├── lib/              # Firebase config, auth utils
+├── pages/            # Map, Music, Podcast, Login, Onboarding
+├── services/         # Game, Auth, Music, YouTube APIs
+└── main.tsx          # App entry point
 ```
 
-## Key Services
+---
 
-### Authentication Service (`authService.ts`)
-- User registration and login
-- Profile management
-- Firebase Auth integration
+## 🧐 About the Founder
 
-### Game Service (`gameService.ts`)
-- Create and join games
-- Real-time game updates
-- Location-based game discovery
+This project is led by **Jerrel Cooper**, a visionary with passion, grit, and a love for changing the world. The mission? Empower players, elevate the game, and turn hoopers into heroes — city by city.
 
-### Maps Service (`mapsService.ts`)
-- Cross-platform map support
-- Court discovery
-- Navigation integration
+---
 
-### YouTube Service (`youtubeService.ts`)
-- Podcast episode fetching
-- Video playback
-- Channel management
+## 🤝 Contributors
 
-### Music Service (`musicService.ts`)
-- Apple Music integration
-- Playlist management
-- Cross-platform music links
+* Jerrel Cooper – Founder, Product, Vision
+* You? PRs are welcome.
 
-## Deployment
+---
 
-### Netlify (Recommended)
-1. Connect your GitHub repository
-2. Set environment variables in Netlify dashboard
-3. Deploy automatically on push
+## 📩 Contact
 
-### Firebase Hosting
-```bash
-npm run build
-firebase deploy
-```
+Want to collaborate or invest? Reach out:
+📧 [jerrel@whogotnextapp.com](mailto:jerrel@whogotnextapp.com)
+📷 [@whogotnextapp](https://instagram.com/whogotnextapp)
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+## 🏑️ License
 
-## License
+This project is licensed under the MIT License.
 
-MIT License - see LICENSE file for details
 
 ## Support
 
