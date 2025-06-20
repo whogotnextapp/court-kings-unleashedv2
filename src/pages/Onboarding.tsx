@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle } from '@/lib/auth';
-import { doc, setDoc, serverTimestamp, GeoPoint } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp, GeoPoint } from 'firebase/firestore';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -10,9 +10,8 @@ const Onboarding = () => {
   const handleLogin = async () => {
     try {
       const user = await loginWithGoogle();
-      console.log('✅ Logged in:', user);
+      if (!user) return;
 
-      // Try to get geolocation
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
@@ -27,31 +26,30 @@ const Onboarding = () => {
               updatedAt: serverTimestamp(),
             }, { merge: true });
 
-            console.log('📍 User + location saved to Firestore');
             navigate('/map');
           },
-          (error) => {
-            console.error('Geolocation error:', error);
-            navigate('/map'); // fallback route
-          }
+          (err) => console.error('Geolocation error:', err)
         );
       } else {
-        console.warn('Geolocation not supported');
-        navigate('/map');
+        console.error('Geolocation not supported');
       }
     } catch (err) {
-      console.error('❌ Login failed:', err);
+      console.error('Login failed:', err);
     }
   };
 
   return (
-    <div className="h-screen flex flex-col justify-center items-center bg-black text-white text-center p-4">
-      <h1 className="text-4xl font-bold mb-6">🏀 Who Got Next™</h1>
-      <p className="text-lg mb-8">Find pickup games. Build your rep.</p>
+    <div className="flex flex-col justify-center items-center h-screen bg-[#0A0A0A] text-center px-6">
+      <h1 className="text-4xl font-extrabold text-white mb-4">
+        Who Got Next<span className="text-sm align-top">™</span>
+      </h1>
+      <p className="text-[#CCCCCC] text-lg max-w-md">
+        Join local pickup basketball games. Build your rep. Track your wins.
+      </p>
 
       <button
         onClick={handleLogin}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700"
+        className="mt-10 px-6 py-3 bg-[#316BFF] text-white text-lg font-semibold rounded-xl shadow-md hover:bg-blue-700 transition duration-200"
       >
         Sign in with Google
       </button>

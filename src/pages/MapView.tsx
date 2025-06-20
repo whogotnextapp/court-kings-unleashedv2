@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import TabLayout from '@/components/TabLayout';
 
 const containerStyle = {
   width: '100%',
-  height: '100%'
+  height: '100vh'
 };
 
 const defaultCenter = {
@@ -32,7 +31,7 @@ const MapView = () => {
   }, []);
 
   return (
-    <TabLayout>
+    <div className="bg-[#0A0A0A] h-screen w-screen">
       <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
         <GoogleMap
           mapContainerStyle={containerStyle}
@@ -40,7 +39,7 @@ const MapView = () => {
           zoom={13}
           options={{
             disableDefaultUI: true,
-            styles: [],
+            styles: [], // You can insert dark mode styling JSON here if desired
           }}
         >
           {userLocation && (
@@ -53,7 +52,7 @@ const MapView = () => {
           )}
         </GoogleMap>
       </LoadScript>
-    </TabLayout>
+    </div>
   );
 };
 
